@@ -1,0 +1,37 @@
+{
+  "name": "capstone-file-manager",
+  "version": "1.0.3",
+  "description": "The module reveals simple API, which helps CapstoneJS developers to store files locally, without using third-party services",
+  "main": "index.js",
+  "scripts": {
+    "test": "jasmine",
+    "coverage": "nyc report --reporter=html jasmine"
+  },
+  "keywords": [
+    "capstonejs",
+    "javascript",
+    "capstone",
+    "capstonejs"
+  ],
+  "author": {
+    "name": "jm4rc05"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://bitbucket.org/jm4rc05/capstone-file-manager"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">= 8.9.2"
+  },
+  "dependencies": {
+    "lodash": "^4.17.11"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "chai-spies": "^1.0.0",
+    "jasmine": "^3.3.0",
+    "nyc": "^13.1.0",
+    "sinon": "^6.3.5"
+  }
+}
