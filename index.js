@@ -25,18 +25,6 @@ const normalizePath = require('./utils/normalize-path');
 const completePathToFile = require('./utils/complete-path-to-file');
 
 /**
- * Configured via capstone options
- * @type {{pathToPublicFolder: string, virtualPropKey: string, uploadedFilesStorage: string}}
- */
-const options = {
-  pathToPublicFolder: capstone.get(CF.PUBLIC_URL) || '/images/',
-
-  virtualPropKey: capstone.get(CF.VIRTUAL_PROP_KEY) || 'src',
-
-  uploadedFilesStorage: capstone.get(CF.UPLOADED_FILES_STORAGE)
-};
-
-/**
  * This class represents the Facade pattern that is meant to be easy to use tool for managing images in models.
  * To use the Facade in model all you have to do is to create a new instance of the class and invoke it's method init()
  * @tutorial You must instantiate an instance of the class and invoke .init() method BEFORE calling capstone.List.prototype.add() method!
@@ -53,29 +41,45 @@ module.exports = class {
 
     this.schemaObject = {};
 
-    // TODO Think about more universal solution for Windows and Posix compatible paths
-    this.folderName = getFolderName(this.modelName).replace(/^\//, '');
-
     // empty placeholder where later mongo document _id will be saved
     this.currentMongoDocument = new MongoDocumentCopy();
-
-    this.imageStorage = new capstone.Storage({
-                                               adapter: capstone.Storage.Adapters.FS,
-
-                                               fs: {
-                                                 path: capstone.expandPath(this.folderName),
-                                                 generateFilename: generateFilename.bind(this.currentMongoDocument),
-                                                 whenExists: 'overwrite'
-                                               }
-                                             });
 
     this.filesToDelete = {};
   }
 
+  initOptions() {
+    this.options = {
+      pathToPublicFolder: this.capstone.get(CF.PUBLIC_URL) || '/images/',
+      virtualPropKey: this.capstone.get(CF.VIRTUAL_PROP_KEY) || 'src',
+      uploadedFilesStorage: this.capstone.get(CF.UPLOADED_FILES_STORAGE)
+    };
+  }
+
+  initStorage() {
+    this.imageStorage = new this.capstone.Storage({
+      adapter: this.capstone.Storage.Adapters.FS,
+
+      fs: {
+        path: this.capstone.expandPath(this.folderName),
+        generateFilename: generateFilename.bind(this.currentMongoDocument),
+        whenExists: 'overwrite'
+      }
+    });
+  }
+
   /**
    * Init
+   * @param {object} [capstoneContext] - capstone instance
    */
-  init() {
+  init(capstoneContext) {
+    this.capstone = capstoneContext || capstone;
+
+    // TODO Think about more universal solution for Windows and Posix compatible paths
+    this.folderName = getFolderName(this.modelName, this.capstone).replace(/^\//, '');
+
+    this.initOptions();
+    this.initStorage();
+
     this.wrapAddMethod();
   }
 
@@ -99,7 +103,7 @@ module.exports = class {
 
       that.setHooks();
 
-      capstone.List.prototype.add.apply(that.list, arguments);
+      that.capstone.List.prototype.add.apply(that.list, arguments);
     };
   }
 
@@ -135,10 +139,10 @@ module.exports = class {
     const that = this;
 
     this.getFileFieldsNames().forEach(field => {
-      this.list.schema.virtual(`${field}.${options.virtualPropKey}`).get(function () {
+      this.list.schema.virtual(`${field}.${that.options.virtualPropKey}`).get(function () {
         const proxyThis = new Proxy(this, getComplexPropertyProxyHandler);
 
-        const pathToFolder = normalizePath(options.pathToPublicFolder + that.modelName);
+        const pathToFolder = normalizePath(that.options.pathToPublicFolder + that.modelName);
 
         return completePathToFile(proxyThis[field].filename, pathToFolder);
       });
@@ -191,7 +195,7 @@ module.exports = class {
         filename = proxyThis[field].filename;
 
         if (filename && filename.toString() !== 'undefined') {
-          fileExists = fs.existsSync(capstone.expandPath(that.folderName + filename));
+          fileExists = fs.existsSync(that.capstone.expandPath(that.folderName + filename));
 
           if (!fileExists) {
             next(new Error(`There is no file: '${filename}' in '${that.folderName}' folder. Please, upload the file again.`));
