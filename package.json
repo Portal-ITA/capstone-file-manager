@@ -4,7 +4,6 @@
   "description": "The module reveals simple API, which helps CapstoneJS developers to store files locally, without using third-party services",
   "main": "index.js",
   "keywords": [
-    "capstonejs",
     "javascript",
     "capstone",
     "capstonejs"
